@@ -13,6 +13,8 @@ s_height = 700
 play_width = 300  
 play_height = 600
 
+
+
 top_left_x = (s_width - play_width) // 2
 top_left_y = s_height - play_height
 
@@ -37,6 +39,10 @@ class ObjectType(Enum):
     BULLET = 2,
     ELEVATOR = 3,
     DOOR = 4
+    
+class ElevatorDir(Enum):
+    UP = 0,
+    DOWN = 1
 
 W, H = 1270, 720
 # define configuration variables here
@@ -59,15 +65,17 @@ GREEN = (0, 255, 0)
 RED = (255, 0, 0)
 BLUE = (0, 0, 255)
 
-score = 0
-health = 5
 screen = pygame.display.set_mode((W, H))
  
 def draw_text_middle(text, size, color, surface):
     font = pygame.font.SysFont('comicsans', size, bold=True)
     label = font.render(text, 1, color)
-
-    surface.blit(label, (top_left_x + play_width/2 - (label.get_width() / 2), top_left_y + play_height/2 - label.get_height()/2))
+    surface.blit(label, (W/4, H/2))
+    
+def draw_final_score(text, size, color, surface):
+    font = pygame.font.SysFont('comicsans', size, bold=True)
+    label = font.render(text, 1, color)
+    surface.blit(label, (W/3+100, H / 4))
 
 def draw_window(surface):
     surface.fill((0,0,0))
@@ -331,27 +339,39 @@ class Character(pygame.sprite.Sprite):
         self.right.midright = [self.rect.midright[0] - 25,self.rect.midright[1]]
 
 class Elevator(pygame.sprite.Sprite):
-    def __init__(self,filename):
+    def __init__(self,filename,posX,posY):
         pygame.sprite.Sprite.__init__(self)
         self.image = pygame.image.load(filename).convert_alpha()
-        self.image = pygame.transform.scale(self.image,[70,20])
-        self._positionX = 0
-        self._positionY = 0
+        self.image = pygame.transform.scale(self.image,[70,80])
+        self._positionX = posX
+        self._positionY = posY
+        self.startPosY = self._positionY
         self.velocityY = 0
         self.rect = self.image.get_rect()
         self.feet = pygame.Rect(0,0, self.rect.width, 8)
         self.left = pygame.Rect(0,0,self.rect.width / 10,20)
         self.right = pygame.Rect(0,0,self.rect.width / 10,20)
         self.bIsPlayer = ObjectType.ELEVATOR
+        self.CollideWithElavator = False
         
-    def setVelocity(self,bIsActive):
-        if bIsActive == True:
-            self.velocityY = 12.0
-        else:
-            self.velocityY = 0
+ 
+            
+        self.Dir = ElevatorDir.DOWN
+    def setVelocity(self):
+        self.velocityY = 1
             
     def UpdatePosition(self):
-       self._positionY += self.velocityY
+        
+       if self._positionY == self.startPosY - 100:
+            self.Dir = ElevatorDir.DOWN
+       elif  self._positionY == self.startPosY + 250:
+           self.Dir = ElevatorDir.UP
+           
+       if self.Dir == ElevatorDir.DOWN:
+           self._positionY += self.velocityY
+       else:
+           self._positionY -= self.velocityY
+           
        self.rect.topleft = [self._positionX,self._positionY]
        self.feet.midbottom = self.rect.midbottom
         
@@ -421,7 +441,7 @@ DeathAnimList.append("Gun/dead/dead11.png")
 
 BulletImage = ("photos/bullet.png") 
 
-ElevatorImage = ("photos/elevator.png")
+ElevatorImage = ("Elevator.png")
 
 BulletsPlayer = []
 BulletsEnemy = []
@@ -490,23 +510,28 @@ class Game(object):
     
             
         
-        self.elevatorLower = Elevator(ElevatorImage)
-        self.elevatorLower._positionX += 350
-        self.elevatorLower._positionY += 80
+        self.elevatorInitX = 350
+        self.elevatorInitY = 10
 
-        elevator.append(self.elevatorLower)
+
+     
+        for i in range(24):
+            elevator.append(Elevator(ElevatorImage,self.elevatorInitX,self.elevatorInitY))
+            self.elevatorInitY += 250
         
         for i in elevator:
             self.group.add(i)
       
                 
-        
+   
         self.playerCharacter = Character(PlayerWalkAnimList[0])
         #self.playerCharacter._position = self.map_layer.map_rect.center
         self.playerCharacter._positionX += 300
         self.playerCharacter._positionY += 20
         
  
+
+        self.group.add(self.playerCharacter)
             
           #Variables
         self.animDelay = 50
@@ -537,38 +562,40 @@ class Game(object):
         self.bIsFiring = False
         self.bHasFired = False
         self.bCanFire = True
-        self.CollideWithElavator = False
+       
         
     
         self.bAddEnemy = False
         self.facing = 1
         self.PlayeBulletOffset = 0
-        #activate elevator bool
-        self.bIsActive = False
+
        
         self.bCanSpawnEnemy = True
         
         self.WalkSoundTimer = 0
 
         pygame.display.set_caption("Elevator action")
-        self.done = False
 
         self.clock = pygame.time.Clock()
         
+        self.score = 0
+        self.health = 10
+        
+        self.bGameOver = False
+        
 
-        self.group.add(self.playerCharacter)
                
       def MovementHandle(self):
             
             
             self.keys = pygame.key.get_pressed()
             
-            if self.keys[pygame.K_a]:
+            if self.keys[pygame.K_LEFT]:
                 self.bIsWalking = True
                 self.currentAnim = CurrentAnim.LEFT 
                 
             
-            elif self.keys[pygame.K_d]:
+            elif self.keys[pygame.K_RIGHT]:
                 self.bIsWalking = True
                 self.currentAnim = CurrentAnim.RIGHT 
                     
@@ -617,12 +644,12 @@ class Game(object):
               self.group.add(BulletsEnemy[len(BulletsEnemy)-1])
                 
                 
-      def run(self):
+      def run(self,done):
           
             for event in pygame.event.get():
 
                     if event.type == pygame.QUIT:
-                        self.done = True
+                        pygame.quit()
                         
             pistolSound.set_volume(0.4)         
             
@@ -675,7 +702,7 @@ class Game(object):
                 self.bIsWalking = False
                 
                                 
-            if self.keys[pygame.K_s]:
+            if self.keys[pygame.K_DOWN]:
                 self.playerCharacter.bPlayerCrouching = True
             else:
                 self.playerCharacter.bPlayerCrouching = False
@@ -704,29 +731,40 @@ class Game(object):
                 
                 if sprite.bIsPlayer == ObjectType.PLAYER:
                     
-                    if sprite.feet.collidelist(self.walls) > -1 or self.CollideWithElavator == True:
-             
-                        self.bCollided = True
+
+                            
+                    for i in elevator:    
+                        if sprite.feet.collidelist(self.walls) > -1 or i.CollideWithElavator == True:
+
+                            
+                            self.bCollided = True
                         
-                        if self.bIsJumping == False:
-                            self.velY = 0
-                            if self.bCanJump == False:
-                                if self.bCollided == True:
-                                    self.bCanJump = True         
+                            if self.bIsJumping == False:
+                                self.velY = 0
+                                if self.bCanJump == False:
+                                    if self.bCollided == True:
+                                        self.bCanJump = True         
                    
-                    else:
-                        self.bCollided = False
+                        else:
+                            self.bCollided = False
                         
                 elif sprite.bIsPlayer == ObjectType.ENEMY:
-                     if sprite.feet.collidelist(self.walls) > -1:
+                     if sprite.feet.collidelist(self.walls) > -1 and i.CollideWithElavator == False:
                          sprite.bCollided = True
                      else:
                          sprite.bCollided = False
+            
+            for i in elevator:            
+                if i.CollideWithElavator == False:
+                        if self.bCollided == False:    
+                            self.velY += 0.1/len(elevator)
                         
-                    
-            if self.bCollided == False  and self.CollideWithElavator == False:
-                
-                   self.velY += 0.1
+                else:
+                    if i.Dir == ElevatorDir.DOWN:
+                        if self.bIsJumping == False:
+                            self.velY += 1.0/len(elevator)+0.82
+                    else:
+                        self.velY -= 1.0 * 1.1
                
             for i in Enemies:  
                 if i.bCollided == False:
@@ -870,21 +908,13 @@ class Game(object):
                         BulletsEnemy.pop(BulletsEnemy.index(i))
                         
             
-            #print("player = " + str(self.playerCharacter.rect))
             for i in elevator:
-                 if (self.playerCharacter.rect[0] >= i.rect[0] - 20 and self.playerCharacter.rect[0] <= i.rect[0] + 130) and (self.playerCharacter.rect[1] >= i.rect[1] - 40 and self.playerCharacter.rect[1] <= i.rect[1]):
-                     self.bIsActive = True
-                     self.CollideWithElavator = True
-                     self.bCollided = True
-                     #self.velY = 0
-                     #print("collision")
+                
+                 if self.playerCharacter.rect[1] >= i.rect[1] - 20 and self.playerCharacter.rect[1] <= i.rect[1] + 20 and self.playerCharacter.rect[0] >= i.rect[0] - 50 and self.playerCharacter.rect[0] <= i.rect[0] + 50:
+                     i.CollideWithElavator = True
                  else:
-                     self.bIsActive = False
-                     self.CollideWithElavator = False
-                     
-                     #print("No collision")
-                 #print(str(i) + str(i.rect))
-                 i.setVelocity(self.bIsActive)
+                     i.CollideWithElavator = False
+                 i.setVelocity()
                  i.UpdatePosition()
                  
                  
@@ -915,6 +945,7 @@ class Game(object):
                 for j in Enemies:
                     if (i.rect[1] <= j.rect[1]+20 and i.rect[1] >= j.rect[1]-20) and ( i.rect[0] <= j.rect[0] + 5 and i.rect[0] >= j.rect[0] - 5) :
                         j.bIsDead = True
+                        self.score +=10
                         hitmarkSound.play(0)
                         
                         self.group.remove(i)
@@ -927,44 +958,86 @@ class Game(object):
             for i in BulletsEnemy:
                 if self.playerCharacter.bPlayerCrouching == False and self.bIsJumping == False:
                     if (i.rect[1] <= self.playerCharacter.rect[1]+20 and i.rect[1] >= self.playerCharacter.rect[1]-20) and ( i.rect[0] <= self.playerCharacter.rect[0] + 5 and i.rect[0] >= self.playerCharacter.rect[0] - 5):
-                        print("PLAYER HIT")
+                        #print("PLAYER HIT")
+                        self.playerCharacter._positionY -=4
+                        print(i.facing)
+                        if i.facing < 0:
+                            self.playerCharacter._positionX -=5
+                            
+                        elif i.facing > 0:
+                            self.playerCharacter._positionX +=5
+                        self.health -=1
                         # score = score - 100
                         # health = health-1
                         self.group.remove(i)
                         BulletsEnemy.pop(BulletsEnemy.index(i))
 
-
+            
+            if self.health<=0:
+                pass
+                #self.bGameOver = True
+                
             self.group.draw(screen)
-            draw_score(screen, 30, 30, score)
-            draw_health(screen,1120,30,health)
+            draw_score(screen, 30, 30, self.score)
+            draw_health(screen,1120,30,self.health)
             pygame.display.flip()
 
             self.clock.tick(60)
      
 pygame.mixer.music.set_volume(0.5)
 pygame.mixer.music.play(-1)
+
+done = False
 game = Game()
 
 start = False
-while not game.done:
+while not done:
+    pygame.display.update()
     
+    print(len(elevator))
+        
     if start == True:
-        screen = pygame.display.set_mode((W, H))
-        game.run()
-    else:
-        screen = pygame.display.set_mode((W - 400, H))
+        game.run(done)
+    if start == False:
         pygame.display.set_caption('Elevator action')
         screen.fill((0,0,0))
         draw_text_middle('Press SPACE to begin.', 60, (255, 255, 255), screen)
-        pygame.display.update()
+        
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                game.done = False
+                done = True
                 
     
         keys = pygame.key.get_pressed()
         if keys[pygame.K_SPACE]:
             start = True
+            
+            
+    if game.bGameOver == True:
+        screen.fill((0,0,0))
+        start = False
+        draw_text_middle('Game Over.Press R to restart or Q to quit', 40, (255, 255, 255), screen)
+        draw_final_score('SCORE = '+str(game.score), 60, (255, 255, 255), screen)
+        #pygame.display.update()
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_q]:
+            pygame.quit()
+            done = True
+            
+        elif keys[pygame.K_r]:
 
+            elevator.clear()
+            Enemies.clear() 
+            BulletsPlayer.clear() 
+            doors.clear()
+            BulletsEnemy.clear()
+            game.group.clear(screen,screen)
+            del game
+            game = Game()
+            start == True
+            game.bGameOver = False
+            
+            
+ 
 
 pygame.quit()
