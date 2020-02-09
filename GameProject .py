@@ -29,6 +29,7 @@ hitmarkSound = pygame.mixer.Sound("hitmark.wav")
 jumpSound = pygame.mixer.Sound("jump.wav")
 damageTakenSound = pygame.mixer.Sound("damageTaken.wav")
 enemyGun = pygame.mixer.Sound("enemyGun.wav")
+hpGain = pygame.mixer.Sound("hpGain.wav")
 
 class CurrentAnim(Enum):
     LEFT = 0
@@ -513,11 +514,11 @@ class Game(object):
             
         
         self.elevatorInitX = 350
-        self.elevatorInitY = 40
+        self.elevatorInitY = 200
 
 
      
-        for i in range(24):
+        for i in range(20):
             elevator.append(Elevator(ElevatorImage,self.elevatorInitX,self.elevatorInitY))
             self.elevatorInitY += 250
         
@@ -543,6 +544,8 @@ class Game(object):
         self.SpawnlastUpdate = 0
         self.JumplastUpdate = 0
         self.AttacklastUpdate = 0
+        
+        self.ScoreIncreaseTimer = 0
         
         self.playerVel = [0, 0]
         self.velX = 0
@@ -582,7 +585,7 @@ class Game(object):
         
         self.score = 0
         self.health = 10
-        
+        self.bHealthCheck = True
         self.bGameOver = False
         self.bLevelPassed = False
         
@@ -948,7 +951,11 @@ class Game(object):
                 for j in Enemies:
                     if (i.rect[1] <= j.rect[1]+20 and i.rect[1] >= j.rect[1]-20) and ( i.rect[0] <= j.rect[0] + 5 and i.rect[0] >= j.rect[0] - 5) :
                         j.bIsDead = True
-                        self.score +=10
+                        if pygame.time.get_ticks() - self.ScoreIncreaseTimer > 1000:
+                            self.score +=50
+                            self.ScoreIncreaseTimer = pygame.time.get_ticks()
+                        
+                        self.bHealthCheck = True
                         hitmarkSound.play(0)
                         
                         self.group.remove(i)
@@ -957,7 +964,7 @@ class Game(object):
                             BulletsPlayer.pop(BulletsPlayer.index(i))
                         except:
                             continue
-
+                        
             for i in BulletsEnemy:
                 if self.playerCharacter.bPlayerCrouching == False and self.bIsJumping == False:
                     if (i.rect[1] <= self.playerCharacter.rect[1]+20 and i.rect[1] >= self.playerCharacter.rect[1]-20) and ( i.rect[0] <= self.playerCharacter.rect[0] + 5 and i.rect[0] >= self.playerCharacter.rect[0] - 5):
@@ -970,11 +977,48 @@ class Game(object):
                         elif i.facing > 0:
                             self.playerCharacter._positionX +=5
                         self.health -=1
+                        self.score -= 75
                         damageTakenSound.play(0)
                         self.group.remove(i)
                         BulletsEnemy.pop(BulletsEnemy.index(i))
+                        
+            if self.score == 250 and self.bHealthCheck == True:
+               self.health += 1
+               hpGain.play(0)
+               self.bHealthCheck = False
+            if self.score == 500 and self.bHealthCheck == True:
+               self.health += 1
+               hpGain.play(0)
+               self.bHealthCheck = False
+            if self.score == 750 and self.bHealthCheck == True:
+               self.health += 1
+               hpGain.play(0)
+               self.bHealthCheck = False
+            if self.score == 1000 and self.bHealthCheck == True:
+               self.health += 1
+               hpGain.play(0)
+               self.bHealthCheck = False
+            if self.score == 1500 and self.bHealthCheck == True:
+               self.health += 1
+               hpGain.play(0)
+               self.bHealthCheck = False
+            if self.score == 2000 and self.bHealthCheck == True:
+               self.health += 2
+               hpGain.play(0)
+               self.bHealthCheck = False
+            if self.score == 3000 and self.bHealthCheck == True:
+               self.health += 3
+               hpGain.play(0)
+               self.bHealthCheck = False
+            if self.score == 4000 and self.bHealthCheck == True:
+               self.health += 3
+               hpGain.play(0)
+               self.bHealthCheck = False
+            if self.score == 5000 and self.bHealthCheck == True:
+               self.health += 3
+               hpGain.play(0)
+               self.bHealthCheck = False
 
-            
             if self.playerCharacter._positionX >= 687 - 40 and self.playerCharacter._positionX <= 687 + 40 and self.playerCharacter._positionY >= 4657 - 40 and self.playerCharacter._positionY <= 4657 + 40:
                 self.bLevelPassed = True
             if self.health<=0:
@@ -1069,5 +1113,3 @@ while not done:
  
 
 pygame.quit()
-
-#x = 687, y = 4657
