@@ -27,6 +27,8 @@ pistolSound = pygame.mixer.Sound("pistol.wav")
 runSound = pygame.mixer.Sound("running.wav")
 hitmarkSound = pygame.mixer.Sound("hitmark.wav")
 jumpSound = pygame.mixer.Sound("jump.wav")
+damageTakenSound = pygame.mixer.Sound("damageTaken.wav")
+enemyGun = pygame.mixer.Sound("enemyGun.wav")
 
 class CurrentAnim(Enum):
     LEFT = 0
@@ -511,7 +513,7 @@ class Game(object):
             
         
         self.elevatorInitX = 350
-        self.elevatorInitY = 10
+        self.elevatorInitY = 40
 
 
      
@@ -784,6 +786,7 @@ class Game(object):
 
                 if i.bIsFiring == True and i.result <= 600 and i.result >= -600 and i._positionY >= self.playerCharacter._positionY - 20 and i._positionY <= self.playerCharacter._positionY + 20:
                     thread = threading.Thread(target=self.Bullet_thread_enemy)
+                    enemyGun.play(0)
                     thread.start()
                     i.bIsFiring = False
                 
@@ -967,12 +970,13 @@ class Game(object):
                         elif i.facing > 0:
                             self.playerCharacter._positionX +=5
                         self.health -=1
+                        damageTakenSound.play(0)
                         self.group.remove(i)
                         BulletsEnemy.pop(BulletsEnemy.index(i))
 
             
             if self.playerCharacter._positionX >= 687 - 40 and self.playerCharacter._positionX <= 687 + 40 and self.playerCharacter._positionY >= 4657 - 40 and self.playerCharacter._positionY <= 4657 + 40:
-                self.bLevelPassed = True;
+                self.bLevelPassed = True
             if self.health<=0:
                 self.bGameOver = True
                 
