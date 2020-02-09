@@ -582,8 +582,8 @@ class Game(object):
         self.health = 10
         
         self.bGameOver = False
+        self.bLevelPassed = False
         
-
                
       def MovementHandle(self):
             
@@ -967,15 +967,16 @@ class Game(object):
                         elif i.facing > 0:
                             self.playerCharacter._positionX +=5
                         self.health -=1
-                        # score = score - 100
-                        # health = health-1
                         self.group.remove(i)
                         BulletsEnemy.pop(BulletsEnemy.index(i))
 
             
+            if self.playerCharacter._positionX >= 687 - 40 and self.playerCharacter._positionX <= 687 + 40 and self.playerCharacter._positionY >= 4657 - 40 and self.playerCharacter._positionY <= 4657 + 40:
+                self.bLevelPassed = True;
             if self.health<=0:
-                pass
-                #self.bGameOver = True
+                self.bGameOver = True
+                
+            print(str(self.playerCharacter._positionX) + ", "+str(self.playerCharacter._positionY))    
                 
             self.group.draw(screen)
             draw_score(screen, 30, 30, self.score)
@@ -1013,7 +1014,7 @@ while not done:
             start = True
             
             
-    if game.bGameOver == True:
+    if game.bGameOver == True and game.bLevelPassed == False:
         screen.fill((0,0,0))
         start = False
         draw_text_middle('Game Over.Press R to restart or Q to quit', 40, (255, 255, 255), screen)
@@ -1037,7 +1038,32 @@ while not done:
             start == True
             game.bGameOver = False
             
+    elif game.bGameOver == False and game.bLevelPassed == True:
+        
+        screen.fill((0,0,0))
+        start = False
+        draw_text_middle('Level cleared! Press R to restart or Q to quit', 40, (255, 255, 255), screen)
+        draw_final_score('SCORE = '+str(game.score), 60, (255, 255, 255), screen)
+        #pygame.display.update()
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_q]:
+            pygame.quit()
+            done = True
             
+        elif keys[pygame.K_r]:
+
+            elevator.clear()
+            Enemies.clear() 
+            BulletsPlayer.clear() 
+            doors.clear()
+            BulletsEnemy.clear()
+            game.group.clear(screen,screen)
+            del game
+            game = Game()
+            start == True
+            game.bLevelPassed = False
  
 
 pygame.quit()
+
+#x = 687, y = 4657
