@@ -31,6 +31,8 @@ damageTakenSound = pygame.mixer.Sound("damageTaken.wav")
 enemyGun = pygame.mixer.Sound("enemyGun.wav")
 hpGain = pygame.mixer.Sound("hpGain.wav")
 
+pistolSound.set_volume(0.4)
+
 class CurrentAnim(Enum):
     LEFT = 0
     RIGHT = 1
@@ -656,7 +658,7 @@ class Game(object):
                     if event.type == pygame.QUIT:
                         pygame.quit()
                         
-            pistolSound.set_volume(0.4)         
+                     
             
             if self.bIsWalking == True:
                 if pygame.time.get_ticks() - self.WalkSoundTimer > 500:
@@ -1018,6 +1020,10 @@ class Game(object):
                self.health += 3
                hpGain.play(0)
                self.bHealthCheck = False
+            if self.score == 10000 and self.bHealthCheck == True:
+               self.health += 5
+               hpGain.play(0)
+               self.bHealthCheck = False
 
             if self.playerCharacter._positionX >= 687 - 40 and self.playerCharacter._positionX <= 687 + 40 and self.playerCharacter._positionY >= 4657 - 40 and self.playerCharacter._positionY <= 4657 + 40:
                 self.bLevelPassed = True
@@ -1033,7 +1039,7 @@ class Game(object):
 
             self.clock.tick(60)
      
-pygame.mixer.music.set_volume(0.5)
+pygame.mixer.music.set_volume(0.2)
 pygame.mixer.music.play(-1)
 
 done = False
